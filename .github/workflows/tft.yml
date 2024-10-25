@@ -181,7 +181,7 @@ jobs:
           api_key: ${{ secrets.TF_API_KEY_RH }}
           update_pull_request_status: false
           tmt_hardware: '{ "memory": ">= ${{ needs.prepare_vars.outputs.memory }} MB" }'
-          tmt_plan_filter: "tag:general,template"
+          tmt_plan_filter: "tag:general,aide"
 
       - name: Set final commit status
         uses: myrotvorets/set-commit-status-action@master
