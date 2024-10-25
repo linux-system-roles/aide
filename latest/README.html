@@ -142,15 +142,15 @@ id="toc-collection-requirements">Collection requirements</a></li>
 </ul></li>
 <li><a href="#role-variables" id="toc-role-variables">Role Variables</a>
 <ul>
-<li><a href="#template_foo" id="toc-template_foo">template_foo</a></li>
-<li><a href="#template_bar" id="toc-template_bar">template_bar</a></li>
+<li><a href="#aide_foo" id="toc-aide_foo">aide_foo</a></li>
+<li><a href="#aide_bar" id="toc-aide_bar">aide_bar</a></li>
 </ul></li>
 <li><a href="#variables-exported-by-the-role"
 id="toc-variables-exported-by-the-role">Variables Exported by the
 Role</a>
 <ul>
-<li><a href="#template_reboot_needed"
-id="toc-template_reboot_needed">template_reboot_needed</a></li>
+<li><a href="#aide_reboot_needed"
+id="toc-aide_reboot_needed">aide_reboot_needed</a></li>
 </ul></li>
 <li><a href="#example-playbook" id="toc-example-playbook">Example
 Playbook</a></li>
@@ -161,11 +161,8 @@ Information</a></li>
 </ul>
 </nav>
 <hr>
-<p><img
-src="https://github.com/linux-system-roles/template/workflows/tox/badge.svg"
-alt="template" /></p>
-<p>A template for an ansible role that configures some GNU/Linux
-subsystem or service. A brief description of the role goes here.</p>
+<p>Ansible role for managing Advanced Intrusion Detection Environment
+(AIDE).</p>
 <h1 id="requirements">Requirements</h1>
 <p>Any prerequisites that may not be covered by Ansible itself or the
 role should be mentioned here. This includes platform dependencies not
@@ -186,10 +183,10 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="
 in <code>defaults/main.yml</code>) for the role should go here as these
 form an API of the role. Each variable should have its own section
 e.g.</p>
-<h2 id="template_foo">template_foo</h2>
+<h2 id="aide_foo">aide_foo</h2>
 <p>This variable is required. It is a string that lists the foo of the
 role. There is no default value.</p>
-<h2 id="template_bar">template_bar</h2>
+<h2 id="aide_bar">aide_bar</h2>
 <p>This variable is optional. It is a boolean that tells the role to
 disable bar. The default value is <code>true</code>.</p>
 <p>Variables that are not intended as input, like variables defined in
@@ -199,31 +196,31 @@ mentioned here but keep in mind that as these are probably not part of
 the role API they may change during the lifetime.</p>
 <p>Example of setting the variables:</p>
 <div class="sourceCode" id="cb2"><pre
-class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">template_foo</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;oof&quot;</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">template_bar</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span></code></pre></div>
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">aide_foo</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;oof&quot;</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">aide_bar</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span></code></pre></div>
 <h1 id="variables-exported-by-the-role">Variables Exported by the
 Role</h1>
 <p>This section is optional. Some roles may export variables for
 playbooks to use later. These are analogous to "return values" in
 Ansible modules. For example, if a role performs some action that will
 require a system reboot, but the user wants to defer the reboot, the
-role might set a variable like <code>template_reboot_needed: true</code>
+role might set a variable like <code>aide_reboot_needed: true</code>
 that the playbook can use to reboot at a more convenient time.</p>
 <p>Example:</p>
-<h2 id="template_reboot_needed">template_reboot_needed</h2>
+<h2 id="aide_reboot_needed">aide_reboot_needed</h2>
 <p>Default <code>false</code> - if <code>true</code>, this means a
 reboot is needed to apply the changes made by the role</p>
 <h1 id="example-playbook">Example Playbook</h1>
 <p>Including an example of how to use your role (for instance, with
 variables passed in as parameters) is always nice for users too:</p>
 <div class="sourceCode" id="cb3"><pre
-class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Manage the template subsystem</span></span>
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Manage the aide subsystem</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> all</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">vars</span><span class="kw">:</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">template_foo</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;foo foo!&quot;</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">template_bar</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">aide_foo</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;foo foo!&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">aide_bar</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">roles</span><span class="kw">:</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.template</span></span></code></pre></div>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> linux-system-roles.aide</span></span></code></pre></div>
 <p>More examples can be provided in the <a
 href="examples"><code>examples/</code></a> directory. These can be
 useful, especially for documentation.</p>
