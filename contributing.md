@@ -1,4 +1,4 @@
-# Contributing to the Aide Linux System Role
+# Contributing to the aide Linux System Role
 
 ## Where to start
 
