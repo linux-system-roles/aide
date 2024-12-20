@@ -6,7 +6,7 @@
 
 # Examples of non-distribution specific (generic) internal variables:
 __aide_config: aide.conf
-__aide_packages: ['aide']
+__aide_packages: ["aide", "crontabs"]
 __aide_services: []
 __aide_db_name: /var/lib/aide/aide.db.gz
 __aide_db_new_name: /var/lib/aide/aide.db.new.gz

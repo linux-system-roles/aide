@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Ensure that the cron is set up
+  hosts: all
+  gather_facts: false
+  roles:
+    - role: linux-system-roles.aide
+      vars:
+        aide_init: true
+        aide_cron_check: true
+        aide_cron_interval: "0 12 * * *"
+  tasks:
+ #   - name: Print crontab 1
+ #     ansible.builtin.command: cat /etc/crontab
+
+    - name: Check file content
+      ansible.builtin.lineinfile:
+        path: /etc/crontab
+        regexp: "^.* root /usr/sbin/aide --check"
+        line: "0 12 * * * root /usr/sbin/aide --check"
+        state: present
+      register: result
+      failed_when: result.changed
+      vars:
+        __fingerprint: system_role:aide
+
+- name: Ensure that the cron is not set up
+  hosts: all
+  gather_facts: false
+  roles:
+    - role: linux-system-roles.aide
+      vars:
+        aide_cron_check: false
+  tasks:
+#    - name: Print crontab 2
+#      ansible.builtin.command: cat /etc/crontab
+
+    - name: Check file content
+      ansible.builtin.lineinfile:
+        path: /etc/crontab
+        regexp: "^.* root /usr/sbin/aide --check"
+        line: "0 12 * * * root /usr/sbin/aide --check"
+        state: present
+      register: result
+      failed_when: not result.changed
+      vars:
+        __fingerprint: system_role:aide

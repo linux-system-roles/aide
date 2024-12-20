@@ -26,7 +26,7 @@
   when: aide_db_template is not none
 
 # - name: Print Header
-#   ansible.builtin.shell: head /etc/aide.conf || true
+#   ansible.builtin.command: head /etc/aide.conf || true
 
 - name: Initialize AIDE database
   when: aide_init | bool
@@ -104,3 +104,21 @@
       ansible.builtin.file:
         path: "{{ __aide_db_new_name }}"
         state: absent
+
+- name: Update aide check cron configuration if necessary
+  ansible.builtin.lineinfile:
+    path: /etc/crontab
+    regexp: "^.* root /usr/sbin/aide --check"
+    line: "{{ aide_cron_interval }} root /usr/sbin/aide --check"
+  when:
+    - aide_cron_check is not none
+    - aide_cron_check | bool
+
+- name: Remove aide check cron configuration if necessary
+  ansible.builtin.lineinfile:
+    path: /etc/crontab
+    state: absent
+    regexp: "^.* root /usr/sbin/aide --check"
+  when:
+    - aide_cron_check is not none
+    - not aide_cron_check | bool
