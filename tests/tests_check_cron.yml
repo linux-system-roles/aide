@@ -2,46 +2,82 @@
 ---
 - name: Ensure that the cron is set up
   hosts: all
-  gather_facts: false
-  roles:
-    - role: linux-system-roles.aide
-      vars:
-        aide_init: true
-        aide_cron_check: true
-        aide_cron_interval: "0 12 * * *"
   tasks:
- #   - name: Print crontab 1
- #     ansible.builtin.command: cat /etc/crontab
+    - name: Install crontabs
+      package:
+        name: crontabs
 
-    - name: Check file content
-      ansible.builtin.lineinfile:
-        path: /etc/crontab
-        regexp: "^.* root /usr/sbin/aide --check"
-        line: "0 12 * * * root /usr/sbin/aide --check"
-        state: present
-      register: result
-      failed_when: result.changed
-      vars:
-        __fingerprint: system_role:aide
+    - name: Create tempfile for crontab backup
+      tempfile:
+        prefix: aide_
+        suffix: _crontab
+      register: __aide_crontab_backup
 
-- name: Ensure that the cron is not set up
-  hosts: all
-  gather_facts: false
-  roles:
-    - role: linux-system-roles.aide
-      vars:
-        aide_cron_check: false
-  tasks:
-#    - name: Print crontab 2
-#      ansible.builtin.command: cat /etc/crontab
+    - name: Backup crontab
+      copy:
+        src: /etc/crontab
+        dest: "{{ __aide_crontab_backup.path }}"
+        remote_src: true
+        mode: preserve
 
-    - name: Check file content
-      ansible.builtin.lineinfile:
-        path: /etc/crontab
-        regexp: "^.* root /usr/sbin/aide --check"
-        line: "0 12 * * * root /usr/sbin/aide --check"
-        state: present
-      register: result
-      failed_when: not result.changed
-      vars:
-        __fingerprint: system_role:aide
+    - name: Run tests
+      block:
+        - name: Run the role and set up cron
+          ansible.builtin.include_role:
+            name: linux-system-roles.aide
+          vars:
+            aide_init: true
+            aide_cron_check: true
+            aide_cron_interval: "0 12 * * *"
+
+        - name: Check file content
+          ansible.builtin.lineinfile:
+            path: /etc/crontab
+            regexp: "^.* root /usr/sbin/aide --check"
+            line: "0 12 * * * root /usr/sbin/aide --check"
+            state: present
+          register: result
+          failed_when: result is changed
+
+        - name: Run the role and and do not touch cron
+          ansible.builtin.include_role:
+            name: linux-system-roles.aide
+          vars:
+            aide_cron_interval: "0 1 * * *"
+
+        - name: Ensure file is not changed
+          ansible.builtin.lineinfile:
+            path: /etc/crontab
+            regexp: "^.* root /usr/sbin/aide --check"
+            line: "0 12 * * * root /usr/sbin/aide --check"
+            state: present
+          register: result
+          failed_when: result is changed
+
+        - name: Run the role and disable cron
+          ansible.builtin.include_role:
+            name: linux-system-roles.aide
+          vars:
+            aide_cron_check: false
+
+        - name: Ensure aide cron is removed
+          ansible.builtin.lineinfile:
+            path: /etc/crontab
+            regexp: "^.* root /usr/sbin/aide --check"
+            line: "0 12 * * * root /usr/sbin/aide --check"
+            state: present
+          register: result
+          failed_when: not result is changed
+
+      always:
+        - name: Restore crontab
+          copy:
+            src: "{{ __aide_crontab_backup.path }}"
+            dest: /etc/crontab
+            remote_src: true
+            mode: preserve
+
+        - name: Delete tempfile
+          file:
+            path: "{{ __aide_crontab_backup.path }}"
+            state: absent

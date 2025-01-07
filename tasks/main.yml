@@ -71,8 +71,8 @@
   block:
     - name: Copy AIDE reference database
       ansible.builtin.copy:
-        src: "{{ aide_db_fetch_dir }}/{{ inventory_hostname }}\
-        {{ __aide_db_new_name }}"
+        src: >-
+          {{ aide_db_fetch_dir }}/{{ inventory_hostname }}{{ __aide_db_new_name }}
         dest: "{{ __aide_db_name }}"
         owner: root
         group: root
@@ -91,9 +91,11 @@
       ansible.builtin.command:
         cmd: aide --update
       register: __aide_update_result
-      failed_when: "'AIDE found NO differences between database and filesystem. Looks okay!!'\
-      not in __aide_update_result.stdout"
+      failed_when: __msg not in __aide_update_result.stdout
       changed_when: true
+      vars:
+        __msg: >-
+          AIDE found NO differences between database and filesystem. Looks okay!!
 
     - name: Fetch AIDE database
       ansible.builtin.fetch:
