@@ -1,6 +1,18 @@
 Changelog
 =========
 
+[1.1.0] - 2025-01-31
+--------------------
+
+### New Features
+
+- feat: ensure role works on ostree systems (#15)
+
+### Other Changes
+
+- ci: ansible-plugin-scan is disabled for now (#11)
+- ci: bump ansible-lint to v25; provide collection requirements for ansible-lint (#14)
+
 [1.0.0] - 2025-01-09
 --------------------
 
