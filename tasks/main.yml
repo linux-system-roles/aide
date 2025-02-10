@@ -82,7 +82,7 @@
     - name: Check against AIDE reference database
       ansible.builtin.command:
         cmd: aide --check
-      changed_when: true
+      changed_when: false
 
 - name: Update AIDE database and fetch it
   when: aide_update | bool
