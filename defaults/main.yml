@@ -4,7 +4,7 @@
 # This file also serves as a documentation for such a variables.
 
 # Path to template file
-aide_db_template: null
+aide_config_template: null
 
 # Examples of role input variables:
 aide_db_fetch_dir: files

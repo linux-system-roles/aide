@@ -20,10 +20,10 @@
 
 - name: Generate "/etc/{{ __aide_config }}"
   ansible.builtin.template:
-    src: "{{ aide_db_template }}"
+    src: "{{ aide_config_template }}"
     dest: "/etc/{{ __aide_config }}"
     mode: "0400"
-  when: aide_db_template is not none
+  when: aide_config_template is not none
 
 # - name: Print Header
 #   ansible.builtin.command: head /etc/aide.conf || true
