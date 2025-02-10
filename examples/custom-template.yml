@@ -5,7 +5,7 @@
   tasks:
     - name: Include role aide
       vars:
-        aide_db_template: /tmp/aide-custom.conf.j2
+        aide_config_template: /tmp/aide-custom.conf.j2
         aide_db_fetch_dir: files
         aide_init: true
         aide_fetch_db: true

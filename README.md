@@ -24,7 +24,7 @@ only.
 
 ## Role Variables
 
-### aide_db_template
+### aide_config_template
 
 This variable takes a string to specify a path where the custom template for aide.conf is located.
 
