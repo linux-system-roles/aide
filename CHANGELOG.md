@@ -1,6 +1,17 @@
 Changelog
 =========
 
+[1.1.1] - 2025-02-11
+--------------------
+
+### Bug Fixes
+
+- fix: aide --check should not report changed (#19)
+
+### Other Changes
+
+- refactor: Changed ansible_db_template to ansible_config_template (#18)
+
 [1.1.0] - 2025-01-31
 --------------------
 
