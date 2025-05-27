@@ -110,8 +110,8 @@
 - name: Update aide check cron configuration if necessary
   ansible.builtin.lineinfile:
     path: /etc/crontab
-    regexp: "^.* root /usr/sbin/aide --check"
-    line: "{{ aide_cron_interval }} root /usr/sbin/aide --check"
+    regexp: "^.* root {{ __aide_bin_path }} --check"
+    line: "{{ aide_cron_interval }} root {{ __aide_bin_path }} --check"
   when:
     - aide_cron_check is not none
     - aide_cron_check | bool
@@ -120,7 +120,7 @@
   ansible.builtin.lineinfile:
     path: /etc/crontab
     state: absent
-    regexp: "^.* root /usr/sbin/aide --check"
+    regexp: "^.* root {{ __aide_bin_path }} --check"
   when:
     - aide_cron_check is not none
     - not aide_cron_check | bool
