@@ -10,6 +10,7 @@ __aide_packages: ["aide", "crontabs"]
 __aide_services: []
 __aide_db_name: /var/lib/aide/aide.db.gz
 __aide_db_new_name: /var/lib/aide/aide.db.new.gz
+__aide_bin_path: /usr/sbin/aide
 # ansible_facts required by the role
 __aide_required_facts:
   - distribution

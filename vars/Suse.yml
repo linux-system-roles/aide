@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT
+---
+# Put internal variables here with Suse specific values.
+
+__aide_packages: ["aide", "cron"]
+__aide_db_name: /var/lib/aide/aide.db
+__aide_db_new_name: /var/lib/aide/aide.db.new
+__aide_bin_path: /usr/bin/aide
