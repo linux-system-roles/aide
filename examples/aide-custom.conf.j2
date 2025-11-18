@@ -5,13 +5,18 @@
 @@define DBDIR /var/lib/aide
 @@define LOGDIR /var/log/aide
 
-{% if ansible_facts['os_family'] == 'RedHat' and
-  ansible_facts['distribution_major_version'] in ['8','9'] %}
-# The location of the database to be read.
-database=file:@@{DBDIR}/aide.db.gz
-{% else %}
+# Get the AIDE version first using command 'aide --version' and then check if it is greater than or equal to 0.17.0
+{% if aide_version is version("0.17.0", ">=") %}
 # The location of the database to be read.
 database_in=file:@@{DBDIR}/aide.db.gz
+# Default.
+log_level=warning
+report_level=changed_attributes
+{% else %}
+# The location of the database to be read.
+database=file:@@{DBDIR}/aide.db.gz
+# Default.
+verbose=5
 {% endif %}
 
 # The location of the database to be written.
@@ -21,16 +26,6 @@ database_out=file:@@{DBDIR}/aide.db.new.gz
 
 # Whether to gzip the output to database
 gzip_dbout=yes
-
-{% if ansible_facts['os_family'] == 'RedHat' and
-  ansible_facts['distribution_major_version'] in ['8','9'] %}
-# Default.
-verbose=5
-{% else %}
-# Default.
-log_level=warning
-report_level=changed_attributes
-{% endif %}
 
 report_url=file:@@{LOGDIR}/aide.log
 report_url=stdout

@@ -11,6 +11,20 @@
     use: "{{ (__aide_is_ostree | d(false)) |
              ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
 
+- name: Get AIDE version
+  ansible.builtin.command:
+    cmd: aide --version
+  register: __aide_version_register
+  changed_when: false
+
+# assumes the version starts with a digit and goes to the end of the line
+- name: Set AIDE version
+  set_fact:
+    aide_version: "{{ __output | regex_search('(?m)^A[iI][dD][eE] (\\d.*)$', '\\1') | first }}"
+  vars:
+    __output: "{{ __aide_version_register.stdout if __aide_version_register.stdout | length > 0
+      else __aide_version_register.stderr }}"
+
 - name: Ensure required services are enabled and started
   ansible.builtin.service:
     name: "{{ item }}"

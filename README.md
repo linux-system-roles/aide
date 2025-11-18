@@ -28,7 +28,7 @@ only.
 
 This variable takes a string to specify a path where the custom template for aide.conf is located.
 
-To be sure that everething is correct, template needs to start with following snippet:
+To be sure that everything is correct, template needs to start with following snippet:
 
 ``` jinja
 {{ ansible_managed | comment }}
@@ -38,6 +38,11 @@ To be sure that everething is correct, template needs to start with following sn
 Default: `null`
 
 Type: `string`
+
+**NOTE:** The config file format has changed somewhat in AIDE version 0.17.
+The role exports a variable `aide_version` which you can use, and see
+`examples/aide-custom.conf.j2` for an example of how to conditionally define
+configuration which will work across multiple versions of AIDE.
 
 ### aide_db_fetch_dir
 
@@ -112,6 +117,24 @@ Set check interval for cron
 Default: `0 12 * * *`
 
 Type: `string`
+
+### Variables Exported by the Role
+
+The role will export the following variables:
+
+`aide_version` - string - this is the AIDE version you can use if you need to do
+something which depends on the version e.g. in your custom template you can do:
+
+```jinja2
+{% if aide_version is version("0.17.0", ">=") %}
+# The location of the database to be read.
+database_in=file:@@{DBDIR}/aide.db.gz
+... other new style parameters ...
+{% else %}
+database=file:@@{DBDIR}/aide.db.gz
+... other old style parameters ...
+{% endif %}
+```
 
 ## Example Playbook
 
