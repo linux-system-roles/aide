@@ -158,6 +158,9 @@ id="toc-aide_fetch_db">aide_fetch_db</a></li>
 id="toc-aide_cron_check">aide_cron_check</a></li>
 <li><a href="#aide_cron_interval"
 id="toc-aide_cron_interval">aide_cron_interval</a></li>
+<li><a href="#variables-exported-by-the-role"
+id="toc-variables-exported-by-the-role">Variables Exported by the
+Role</a></li>
 </ul></li>
 <li><a href="#example-playbook" id="toc-example-playbook">Example
 Playbook</a></li>
@@ -198,12 +201,17 @@ suits your requirements; that task remains for you to accomplish</li>
 <h2 id="aide_config_template">aide_config_template</h2>
 <p>This variable takes a string to specify a path where the custom
 template for aide.conf is located.</p>
-<p>To be sure that everething is correct, template needs to start with
+<p>To be sure that everything is correct, template needs to start with
 following snippet:</p>
 <pre class="jinja"><code>{{ ansible_managed | comment }}
 {{ &quot;system_role:aide&quot; | comment(prefix=&quot;&quot;, postfix=&quot;&quot;) }}</code></pre>
 <p>Default: <code>null</code></p>
 <p>Type: <code>string</code></p>
+<p><strong>NOTE:</strong> The config file format has changed somewhat in
+AIDE version 0.17. The role exports a variable <code>aide_version</code>
+which you can use, and see <code>examples/aide-custom.conf.j2</code> for
+an example of how to conditionally define configuration which will work
+across multiple versions of AIDE.</p>
 <h2 id="aide_db_fetch_dir">aide_db_fetch_dir</h2>
 <p>This variable takes a string to specify the directory on the Ansible
 Control Node (ACN) where the role will store the AIDE database fetched
@@ -248,25 +256,39 @@ class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># *  *  *  *  *</span></span></code></pre></div>
 <p>Default: <code>0 12 * * *</code></p>
 <p>Type: <code>string</code></p>
+<h2 id="variables-exported-by-the-role">Variables Exported by the
+Role</h2>
+<p>The role will export the following variables:</p>
+<p><code>aide_version</code> - string - this is the AIDE version you can
+use if you need to do something which depends on the version e.g. in
+your custom template you can do:</p>
+<pre class="jinja2"><code>{% if aide_version is version(&quot;0.17.0&quot;, &quot;&gt;=&quot;) %}
+# The location of the database to be read.
+database_in=file:@@{DBDIR}/aide.db.gz
+... other new style parameters ...
+{% else %}
+database=file:@@{DBDIR}/aide.db.gz
+... other old style parameters ...
+{% endif %}</code></pre>
 <h1 id="example-playbook">Example Playbook</h1>
 <p>Including an example of how to use your role (for instance, with
 variables passed in as parameters) is always nice for users too:</p>
-<div class="sourceCode" id="cb3"><pre
-class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># </span><span class="an">SPDX-License-Identifier:</span><span class="co"> MIT</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="pp">---</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Example aide role invocation</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> targets</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">tasks</span><span class="kw">:</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Include role aide</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">vars</span><span class="kw">:</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_db_fetch_dir</span><span class="kw">:</span><span class="at"> files</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_install</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_generate_config</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_init</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_check</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_update</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">ansible.builtin.include_role</span><span class="kw">:</span></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">name</span><span class="kw">:</span><span class="at"> linux-system-roles.aide</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># </span><span class="an">SPDX-License-Identifier:</span><span class="co"> MIT</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="pp">---</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Example aide role invocation</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hosts</span><span class="kw">:</span><span class="at"> targets</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">tasks</span><span class="kw">:</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Include role aide</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">vars</span><span class="kw">:</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_db_fetch_dir</span><span class="kw">:</span><span class="at"> files</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_install</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_generate_config</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_init</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_check</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">aide_update</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">ansible.builtin.include_role</span><span class="kw">:</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">name</span><span class="kw">:</span><span class="at"> linux-system-roles.aide</span></span></code></pre></div>
 <p>More examples can be found in the <a
 href="examples"><code>examples/</code></a> directory.</p>
 <h1 id="license">License</h1>
