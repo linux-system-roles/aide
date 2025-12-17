@@ -1,6 +1,18 @@
 Changelog
 =========
 
+[1.2.3] - 2025-12-17
+--------------------
+
+### Bug Fixes
+
+- fix: support new config file options, expose aide_version (#54)
+
+### Other Changes
+
+- ci: bump gha checkout from v5 to v6 (#55)
+- ci: add qemu tests for Fedora 43, drop Fedora 41 (#56)
+
 [1.2.2] - 2025-11-17
 --------------------
 
