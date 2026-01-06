@@ -1,6 +1,15 @@
 Changelog
 =========
 
+[1.2.4] - 2026-01-06
+--------------------
+
+### Other Changes
+
+- ci: bump actions/checkout from 5 to 6 (#58)
+- ci: bump actions/upload-artifact from 5 to 6 (#59)
+- docs: fix copyright in license (#60)
+
 [1.2.3] - 2025-12-17
 --------------------
 
