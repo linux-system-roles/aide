@@ -3,6 +3,10 @@
 - name: Set platform/version specific variables
   include_tasks: tasks/set_vars.yml
 
+- name: Debug0
+  debug:
+    msg: bogus {{ ansible_distribution }}
+
 # Examples of some tasks:
 - name: Ensure required packages are installed
   ansible.builtin.package:
