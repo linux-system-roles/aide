@@ -38,8 +38,7 @@
     - name: Run tests
       block:
         - name: Run the role and set up cron
-          ansible.builtin.include_role:
-            name: linux-system-roles.aide
+          include_tasks: tasks/run_role_with_clear_facts.yml
           vars:
             aide_init: true
             aide_cron_check: true
@@ -55,8 +54,7 @@
           failed_when: result is changed
 
         - name: Run the role and and do not touch cron
-          ansible.builtin.include_role:
-            name: linux-system-roles.aide
+          include_tasks: tasks/run_role_with_clear_facts.yml
           vars:
             aide_cron_interval: "0 1 * * *"
 
@@ -70,8 +68,7 @@
           failed_when: result is changed
 
         - name: Run the role and disable cron
-          ansible.builtin.include_role:
-            name: linux-system-roles.aide
+          include_tasks: tasks/run_role_with_clear_facts.yml
           vars:
             aide_cron_check: false
 
