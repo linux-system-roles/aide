@@ -2,13 +2,13 @@
 ---
 - name: Ensure that the role runs with default parameters
   hosts: all
-  roles:
-    - role: linux-system-roles.aide
+  tasks:
+    - name: Run the role
+      include_tasks: tasks/run_role_with_clear_facts.yml
       vars:
         aide_config_template: files/aide-custom.conf.j2
         aide_install: true
         aide_init: true
-  tasks:
     - name: Check header for ansible_managed, fingerprint
       include_tasks: tasks/check_header.yml
       vars:
