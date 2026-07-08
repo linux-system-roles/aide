@@ -49,7 +49,9 @@
     #   ansible.builtin.command: head /etc/aide.conf || true
 
     - name: Initialize AIDE database
-      when: aide_init | bool
+      when:
+        - not ansible_check_mode
+        - aide_init | bool
       block:
         - name: Initialize AIDE database
           ansible.builtin.command:
