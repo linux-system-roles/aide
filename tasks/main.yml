@@ -19,6 +19,7 @@
     - name: Get AIDE version
       ansible.builtin.command:
         cmd: aide --version
+      check_mode: false
       register: __aide_version_register
       changed_when: false
 
