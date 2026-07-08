@@ -76,7 +76,9 @@
           when: not aide_fetch_db | bool
 
     - name: Fetch AIDE database
-      when: aide_fetch_db | bool
+      when:
+        - not ansible_check_mode
+        - aide_fetch_db | bool
       block:
         - name: Fetch AIDE database
           ansible.builtin.fetch:
