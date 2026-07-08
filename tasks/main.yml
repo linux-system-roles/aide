@@ -111,7 +111,9 @@
           changed_when: false
 
     - name: Update AIDE database and fetch it
-      when: aide_update | bool
+      when:
+        - not ansible_check_mode
+        - aide_update | bool
       block:
         - name: Update AIDE database
           ansible.builtin.command:
