@@ -91,7 +91,9 @@
             state: absent
 
     - name: Check AIDE integrity
-      when: aide_check | bool
+      when:
+        - not ansible_check_mode
+        - aide_check | bool
       block:
         - name: Copy AIDE reference database
           ansible.builtin.copy:
