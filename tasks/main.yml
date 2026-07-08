@@ -10,137 +10,142 @@
     state: present
     use: "{{ (__aide_is_ostree | d(false)) |
              ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+  register: __aide_install_packages
 
-- name: Get AIDE version
-  ansible.builtin.command:
-    cmd: aide --version
-  register: __aide_version_register
-  changed_when: false
-
-# assumes the version starts with a digit and goes to the end of the line
-- name: Set AIDE version
-  set_fact:
-    aide_version: "{{ __output | regex_search('(?m)^A[iI][dD][eE] (\\d.*)$', '\\1') | first }}"
-  vars:
-    __output: "{{ __aide_version_register.stdout if __aide_version_register.stdout | length > 0
-      else __aide_version_register.stderr }}"
-
-- name: Ensure required services are enabled and started
-  ansible.builtin.service:
-    name: "{{ item }}"
-    state: started
-    enabled: true
-  loop: "{{ __aide_services }}"
-
-- name: Generate "/etc/{{ __aide_config }}"
-  ansible.builtin.template:
-    src: "{{ aide_config_template }}"
-    dest: "/etc/{{ __aide_config }}"
-    mode: "0400"
-  when: aide_config_template is not none
-
-# - name: Print Header
-#   ansible.builtin.command: head /etc/aide.conf || true
-
-- name: Initialize AIDE database
-  when: aide_init | bool
+- name: Packages are installed
+  # either run mode or check mode and no changes to packages
+  when: not ansible_check_mode or (ansible_check_mode and not __aide_install_packages.changed)
   block:
-    - name: Initialize AIDE database
+    - name: Get AIDE version
       ansible.builtin.command:
-        cmd: aide --init
-      changed_when: true
-
-    - name: Copy AIDE reference database
-      ansible.builtin.copy:
-        remote_src: true
-        src: "{{ __aide_db_new_name }}"
-        dest: "{{ __aide_db_name }}"
-        owner: root
-        group: root
-        mode: "0440"
-        force: true
-      when: not aide_fetch_db | bool
-
-    - name: Remove remote AIDE database file
-      ansible.builtin.file:
-        path: "{{ __aide_db_new_name }}"
-        state: absent
-      when: not aide_fetch_db | bool
-
-- name: Fetch AIDE database
-  when: aide_fetch_db | bool
-  block:
-    - name: Fetch AIDE database
-      ansible.builtin.fetch:
-        src: "{{ __aide_db_new_name }}"
-        dest: "{{ aide_db_fetch_dir }}"
-
-    - name: Remove remote AIDE database file
-      ansible.builtin.file:
-        path: "{{ __aide_db_new_name }}"
-        state: absent
-
-- name: Check AIDE integrity
-  when: aide_check | bool
-  block:
-    - name: Copy AIDE reference database
-      ansible.builtin.copy:
-        src: >-
-          {{ aide_db_fetch_dir }}/{{ inventory_hostname }}{{ __aide_db_new_name }}
-        dest: "{{ __aide_db_name }}"
-        owner: root
-        group: root
-        mode: "0440"
-      when: aide_fetch_db | bool
-
-    - name: Check against AIDE reference database
-      ansible.builtin.command:
-        cmd: aide --check
+        cmd: aide --version
+      register: __aide_version_register
       changed_when: false
 
-- name: Update AIDE database and fetch it
-  when: aide_update | bool
-  block:
-    - name: Update AIDE database
-      ansible.builtin.command:
-        cmd: aide --update
-      register: __aide_update_result
-      failed_when: __msg not in __aide_update_result.stdout
-      changed_when: true
+    # assumes the version starts with a digit and goes to the end of the line
+    - name: Set AIDE version
+      set_fact:
+        aide_version: "{{ __output | regex_search('(?m)^A[iI][dD][eE] (\\d.*)$', '\\1') | first }}"
       vars:
-        __msg: >-
-          AIDE found NO differences between database and filesystem. Looks okay!!
+        __output: "{{ __aide_version_register.stdout if __aide_version_register.stdout | length > 0
+          else __aide_version_register.stderr }}"
+
+    - name: Ensure required services are enabled and started
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop: "{{ __aide_services }}"
+
+    - name: Generate "/etc/{{ __aide_config }}"
+      ansible.builtin.template:
+        src: "{{ aide_config_template }}"
+        dest: "/etc/{{ __aide_config }}"
+        mode: "0400"
+      when: aide_config_template is not none
+
+    # - name: Print Header
+    #   ansible.builtin.command: head /etc/aide.conf || true
+
+    - name: Initialize AIDE database
+      when: aide_init | bool
+      block:
+        - name: Initialize AIDE database
+          ansible.builtin.command:
+            cmd: aide --init
+          changed_when: true
+
+        - name: Copy AIDE reference database
+          ansible.builtin.copy:
+            remote_src: true
+            src: "{{ __aide_db_new_name }}"
+            dest: "{{ __aide_db_name }}"
+            owner: root
+            group: root
+            mode: "0440"
+            force: true
+          when: not aide_fetch_db | bool
+
+        - name: Remove remote AIDE database file
+          ansible.builtin.file:
+            path: "{{ __aide_db_new_name }}"
+            state: absent
+          when: not aide_fetch_db | bool
 
     - name: Fetch AIDE database
-      ansible.builtin.fetch:
-        src: "{{ __aide_db_new_name }}"
-        dest: "{{ aide_db_fetch_dir }}"
+      when: aide_fetch_db | bool
+      block:
+        - name: Fetch AIDE database
+          ansible.builtin.fetch:
+            src: "{{ __aide_db_new_name }}"
+            dest: "{{ aide_db_fetch_dir }}"
 
-    - name: Remove remote AIDE database file
-      ansible.builtin.file:
-        path: "{{ __aide_db_new_name }}"
+        - name: Remove remote AIDE database file
+          ansible.builtin.file:
+            path: "{{ __aide_db_new_name }}"
+            state: absent
+
+    - name: Check AIDE integrity
+      when: aide_check | bool
+      block:
+        - name: Copy AIDE reference database
+          ansible.builtin.copy:
+            src: >-
+              {{ aide_db_fetch_dir }}/{{ inventory_hostname }}{{ __aide_db_new_name }}
+            dest: "{{ __aide_db_name }}"
+            owner: root
+            group: root
+            mode: "0440"
+          when: aide_fetch_db | bool
+
+        - name: Check against AIDE reference database
+          ansible.builtin.command:
+            cmd: aide --check
+          changed_when: false
+
+    - name: Update AIDE database and fetch it
+      when: aide_update | bool
+      block:
+        - name: Update AIDE database
+          ansible.builtin.command:
+            cmd: aide --update
+          register: __aide_update_result
+          failed_when: __msg not in __aide_update_result.stdout
+          changed_when: true
+          vars:
+            __msg: >-
+              AIDE found NO differences between database and filesystem. Looks okay!!
+
+        - name: Fetch AIDE database
+          ansible.builtin.fetch:
+            src: "{{ __aide_db_new_name }}"
+            dest: "{{ aide_db_fetch_dir }}"
+
+        - name: Remove remote AIDE database file
+          ansible.builtin.file:
+            path: "{{ __aide_db_new_name }}"
+            state: absent
+
+    - name: Update aide check cron configuration if necessary
+      ansible.builtin.lineinfile:
+        path: /etc/crontab
+        regexp: "^.* root {{ __aide_bin_path }} --check"
+        line: "{{ aide_cron_interval }} root {{ __aide_bin_path }} --check"
+      when:
+        - aide_cron_check is not none
+        - aide_cron_check | bool
+
+    - name: Remove aide check cron configuration if necessary
+      ansible.builtin.lineinfile:
+        path: /etc/crontab
         state: absent
+        regexp: "^.* root {{ __aide_bin_path }} --check"
+      when:
+        - aide_cron_check is not none
+        - not aide_cron_check | bool
 
-- name: Update aide check cron configuration if necessary
-  ansible.builtin.lineinfile:
-    path: /etc/crontab
-    regexp: "^.* root {{ __aide_bin_path }} --check"
-    line: "{{ aide_cron_interval }} root {{ __aide_bin_path }} --check"
-  when:
-    - aide_cron_check is not none
-    - aide_cron_check | bool
-
-- name: Remove aide check cron configuration if necessary
-  ansible.builtin.lineinfile:
-    path: /etc/crontab
-    state: absent
-    regexp: "^.* root {{ __aide_bin_path }} --check"
-  when:
-    - aide_cron_check is not none
-    - not aide_cron_check | bool
-
-- name: Record role success fingerprint
-  sr_fingerprint:
-    sr_message: >-
-      success system_role:aide ansible_version={{ ansible_version.full }}
-      {{ ansible_facts['distribution'] }}-{{ ansible_facts['distribution_version'] }}
+    - name: Record role success fingerprint
+      sr_fingerprint:
+        sr_message: >-
+          success system_role:aide ansible_version={{ ansible_version.full }}
+          {{ ansible_facts['distribution'] }}-{{ ansible_facts['distribution_version'] }}
