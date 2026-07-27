@@ -1,6 +1,21 @@
 Changelog
 =========
 
+[1.3.2] - 2026-07-27
+--------------------
+
+### Bug Fixes
+
+- fix: Better support for check mode (#93)
+
+### Other Changes
+
+- ci: use gha checkout v7, codecov v7 [citest_skip] (#90)
+- ci: Use our own pr_title_lint.py instead of NPM commitlint [citest_skip] (#91)
+- ci: bump actions/checkout from 6 to 7 (#92)
+- ci: bump tox-lsr version to 3.20.0 to fix tox 4.58 api breakage [citest_skip] (#94)
+- ci: Add support for Fedora 44 and drop Fedora 42 - use ansible-core 2.21 [citest_skip] (#96)
+
 [1.3.1] - 2026-06-24
 --------------------
 
