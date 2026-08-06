@@ -23,6 +23,8 @@ __aide_required_facts:
 __aide_required_facts_subsets: "{{ ['!all', '!min'] +
   __aide_required_facts }}"
 
+__aide_write_log_file: false
+
 # BEGIN - DO NOT EDIT THIS BLOCK - rh distros variables
 # Ansible distribution identifiers that the role treats like RHEL
 __aide_rh_distros:
