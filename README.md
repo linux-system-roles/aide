@@ -26,7 +26,9 @@ only.
 
 ### aide_config_template
 
-This variable takes a string to specify a path where the custom template for aide.conf is located.
+Path to a Jinja2 template on the controller for generating `/etc/aide.conf`.
+When set to `null` or left unset, the role does not generate or modify the
+AIDE configuration file.
 
 To be sure that everything is correct, template needs to start with following snippet:
 
@@ -37,7 +39,7 @@ To be sure that everything is correct, template needs to start with following sn
 
 Default: `null`
 
-Type: `string`
+Type: `null` or `string`
 
 **NOTE:** The config file format has changed somewhat in AIDE version 0.17.
 The role exports a variable `aide_version` which you can use, and see
@@ -56,7 +58,7 @@ need to specify a different path here.
 
 Default: `files`
 
-Type: `string
+Type: `string`
 
 ### aide_init
 
