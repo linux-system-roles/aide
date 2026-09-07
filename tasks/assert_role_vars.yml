@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT
+---
+- name: Assert aide_config_template is null or a string
+  ansible.builtin.assert:
+    that:
+      - >-
+        (aide_config_template is none)
+        or (aide_config_template is string)
+    fail_msg: >-
+      aide_config_template must be null or a string,
+      got {{ aide_config_template | type_debug }}
+
+- name: Assert aide_cron_check is null or a boolean
+  ansible.builtin.assert:
+    that:
+      - >-
+        (aide_cron_check is none)
+        or (aide_cron_check is sameas true)
+        or (aide_cron_check is sameas false)
+    fail_msg: >-
+      aide_cron_check must be null or a boolean,
+      got {{ aide_cron_check | type_debug }}

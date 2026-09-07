@@ -1,0 +1,67 @@
+# SPDX-License-Identifier: MIT
+---
+argument_specs:
+  main:
+    short_description: The aide role.
+    description: >
+      The aide role installs and configures the Advanced Intrusion
+      Detection Environment (AIDE). It can generate `/etc/aide.conf`
+      from a custom template, initialize the AIDE database, run integrity
+      checks, update the database, and configure periodic cron checks.
+    options:
+      aide_config_template:
+        type: raw
+        default: null
+        description: >
+          Path to a Jinja2 template for `/etc/aide.conf` on the
+          controller. When set to `null` or left unset, the role does
+          not generate or modify the AIDE configuration file. The
+          template must include the `ansible_managed` and
+          `system_role:aide` comment markers.
+      aide_db_fetch_dir:
+        type: str
+        default: files
+        description: >
+          Directory on the Ansible control node where fetched AIDE
+          database files from remote hosts are stored, for example
+          `files` relative to the playbook directory.
+      aide_init:
+        type: bool
+        default: false
+        description: >
+          Whether to initialize the AIDE database on remote hosts by
+          running `aide --init` and installing the reference database.
+      aide_fetch_db:
+        type: bool
+        default: false
+        description: >
+          Whether to fetch the newly initialized AIDE database from
+          remote hosts to the control node after initialization.
+      aide_check:
+        type: bool
+        default: false
+        description: >
+          Whether to run an AIDE integrity check on remote hosts using
+          `aide --check`.
+      aide_update:
+        type: bool
+        default: false
+        description: >
+          Whether to update the AIDE database on remote hosts with
+          `aide --update` and fetch the updated database to the
+          control node.
+      aide_cron_check:
+        type: raw
+        default: null
+        description: >
+          Whether to configure (`true`) or remove (`false`) a periodic
+          cron job that runs `aide --check`. When set to `null` or left
+          unset, the cron configuration is not modified. Accepts a
+          boolean value or `null`.
+      aide_cron_interval:
+        type: str
+        default: "0 12 * * *"
+        description: >
+          Cron schedule for the periodic AIDE integrity check, in
+          standard five-field cron format such as `0 12 * * *` for
+          daily at noon.
