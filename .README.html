@@ -199,14 +199,16 @@ suits your requirements; that task remains for you to accomplish</li>
 <code>ansible.builtin</code> modules only.</p>
 <h1 id="role-variables">Role Variables</h1>
 <h2 id="aide_config_template">aide_config_template</h2>
-<p>This variable takes a string to specify a path where the custom
-template for aide.conf is located.</p>
+<p>Path to a Jinja2 template on the controller for generating
+<code>/etc/aide.conf</code>. When set to <code>null</code> or left
+unset, the role does not generate or modify the AIDE configuration
+file.</p>
 <p>To be sure that everything is correct, template needs to start with
 following snippet:</p>
 <pre class="jinja"><code>{{ ansible_managed | comment }}
 {{ &quot;system_role:aide&quot; | comment(prefix=&quot;&quot;, postfix=&quot;&quot;) }}</code></pre>
 <p>Default: <code>null</code></p>
-<p>Type: <code>string</code></p>
+<p>Type: <code>null</code> or <code>string</code></p>
 <p><strong>NOTE:</strong> The config file format has changed somewhat in
 AIDE version 0.17. The role exports a variable <code>aide_version</code>
 which you can use, and see <code>examples/aide-custom.conf.j2</code> for
@@ -220,7 +222,7 @@ expected to be a directory in the same directory as the playbook.</p>
 <p>In case you like to store the fetched AIDE database files somewhere
 else you need to specify a different path here.</p>
 <p>Default: <code>files</code></p>
-<p>Type: `string</p>
+<p>Type: <code>string</code></p>
 <h2 id="aide_init">aide_init</h2>
 <p>Initializes the AIDE database.</p>
 <p>Default: <code>false</code></p>
