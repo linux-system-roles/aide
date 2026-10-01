@@ -51,6 +51,26 @@
     # - name: Print Header
     #   ansible.builtin.command: head /etc/aide.conf || true
 
+    # Configure cron before the database is created, so that the
+    # database records the final /etc/crontab
+    - name: Update aide check cron configuration if necessary
+      ansible.builtin.lineinfile:
+        path: /etc/crontab
+        regexp: "^.* root {{ __aide_bin_path }} --check"
+        line: "{{ aide_cron_interval }} root {{ __aide_bin_path }} --check"
+      when:
+        - aide_cron_check is not none
+        - aide_cron_check | bool
+
+    - name: Remove aide check cron configuration if necessary
+      ansible.builtin.lineinfile:
+        path: /etc/crontab
+        state: absent
+        regexp: "^.* root {{ __aide_bin_path }} --check"
+      when:
+        - aide_cron_check is not none
+        - not aide_cron_check | bool
+
     - name: Initialize AIDE database
       when:
         - not ansible_check_mode
@@ -137,24 +157,6 @@
           ansible.builtin.file:
             path: "{{ __aide_db_new_name }}"
             state: absent
-
-    - name: Update aide check cron configuration if necessary
-      ansible.builtin.lineinfile:
-        path: /etc/crontab
-        regexp: "^.* root {{ __aide_bin_path }} --check"
-        line: "{{ aide_cron_interval }} root {{ __aide_bin_path }} --check"
-      when:
-        - aide_cron_check is not none
-        - aide_cron_check | bool
-
-    - name: Remove aide check cron configuration if necessary
-      ansible.builtin.lineinfile:
-        path: /etc/crontab
-        state: absent
-        regexp: "^.* root {{ __aide_bin_path }} --check"
-      when:
-        - aide_cron_check is not none
-        - not aide_cron_check | bool
 
     - name: Record role success fingerprint
       sr_fingerprint:

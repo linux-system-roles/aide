@@ -53,6 +53,16 @@
           register: result
           failed_when: result is changed
 
+        - name: Check that AIDE does not report /etc/crontab as changed
+          ansible.builtin.command:
+            cmd: /usr/sbin/aide --check
+          register: __aide_check_result
+          changed_when: false
+          # exit codes 1-7 mean differences were found, 14 and higher mean error
+          failed_when: >-
+            __aide_check_result.rc > 7 or
+            '/etc/crontab' in __aide_check_result.stdout
+
         - name: Run the role and and do not touch cron
           include_tasks: tasks/run_role_with_clear_facts.yml
           vars:
