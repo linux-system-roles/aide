@@ -1,0 +1,25 @@
+{{ ansible_managed | comment }}
+{{ "system_role:aide" | comment(prefix="", postfix="") }}
+# AIDE configuration for tests: watch only /etc/crontab.
+
+@@define DBDIR /var/lib/aide
+@@define LOGDIR /var/log/aide
+
+{% if aide_version is version('0.17.0', '>=') %}
+database_in=file:@@{DBDIR}/aide.db.gz
+log_level=warning
+report_level=changed_attributes
+{% else %}
+database=file:@@{DBDIR}/aide.db.gz
+verbose=5
+{% endif %}
+
+database_out=file:@@{DBDIR}/aide.db.new.gz
+gzip_dbout=yes
+
+report_url=file:@@{LOGDIR}/aide.log
+report_url=stdout
+
+CRONTAB = p+u+g+s+sha512
+
+/etc/crontab$ CRONTAB
