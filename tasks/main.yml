@@ -51,6 +51,12 @@
     # - name: Print Header
     #   ansible.builtin.command: head /etc/aide.conf || true
 
+    # With aide_init, configure cron before the database is created, so
+    # that the new database records the final /etc/crontab.
+    - name: Configure the aide check cron before creating the database
+      ansible.builtin.include_tasks: cron.yml
+      when: aide_init | bool
+
     - name: Initialize AIDE database
       when:
         - not ansible_check_mode
@@ -138,23 +144,11 @@
             path: "{{ __aide_db_new_name }}"
             state: absent
 
-    - name: Update aide check cron configuration if necessary
-      ansible.builtin.lineinfile:
-        path: /etc/crontab
-        regexp: "^.* root {{ __aide_bin_path }} --check"
-        line: "{{ aide_cron_interval }} root {{ __aide_bin_path }} --check"
-      when:
-        - aide_cron_check is not none
-        - aide_cron_check | bool
-
-    - name: Remove aide check cron configuration if necessary
-      ansible.builtin.lineinfile:
-        path: /etc/crontab
-        state: absent
-        regexp: "^.* root {{ __aide_bin_path }} --check"
-      when:
-        - aide_cron_check is not none
-        - not aide_cron_check | bool
+    # Without aide_init, the existing database is kept, so configure cron
+    # after the integrity check and the update, as before.
+    - name: Configure the aide check cron
+      ansible.builtin.include_tasks: cron.yml
+      when: not aide_init | bool
 
     - name: Record role success fingerprint
       sr_fingerprint:

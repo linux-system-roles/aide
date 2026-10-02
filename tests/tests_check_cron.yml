@@ -53,6 +53,71 @@
           register: result
           failed_when: result is changed
 
+        - name: Check that AIDE does not report /etc/crontab as changed
+          ansible.builtin.command:
+            cmd: /usr/sbin/aide --check
+          register: __aide_check_result
+          changed_when: false
+          # exit codes 1-7 mean differences were found, 14 and higher mean error
+          failed_when: >-
+            __aide_check_result.rc > 7 or
+            '/etc/crontab' in __aide_check_result.stdout
+
+        # Keep the existing database, check it and change cron in one run.
+        # AIDE watches only /etc/crontab here, so the check result depends
+        # only on when the role changes cron: it must be after the check.
+        # The role has installed AIDE by now, so /etc/aide.conf exists
+        - name: Create tempfile for AIDE config backup
+          tempfile:
+            prefix: aide_
+            suffix: _conf
+          register: __aide_conf_backup
+
+        - name: Backup AIDE config
+          copy:
+            src: /etc/aide.conf
+            dest: "{{ __aide_conf_backup.path }}"
+            remote_src: true
+            mode: preserve
+
+        - name: Create the database with an AIDE config that watches only /etc/crontab
+          include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            aide_config_template: files/aide-crontab-only.conf.j2
+            aide_init: true
+            aide_cron_check: true
+            aide_cron_interval: "0 12 * * *"
+
+        - name: Run the role with the existing database, check it and change cron
+          include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            aide_config_template: files/aide-crontab-only.conf.j2
+            aide_check: true
+            aide_cron_check: true
+            aide_cron_interval: "0 6 * * *"
+
+        - name: Check that cron was changed
+          ansible.builtin.lineinfile:
+            path: /etc/crontab
+            regexp: "^.* root /usr/sbin/aide --check"
+            line: "0 6 * * * root /usr/sbin/aide --check"
+            state: present
+          register: result
+          failed_when: result is changed
+
+        - name: Restore the AIDE config
+          copy:
+            src: "{{ __aide_conf_backup.path }}"
+            dest: /etc/aide.conf
+            remote_src: true
+            mode: preserve
+
+        - name: Set cron back to the first interval
+          include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            aide_cron_check: true
+            aide_cron_interval: "0 12 * * *"
+
         - name: Run the role and and do not touch cron
           include_tasks: tasks/run_role_with_clear_facts.yml
           vars:
@@ -93,3 +158,17 @@
           file:
             path: "{{ __aide_crontab_backup.path }}"
             state: absent
+
+        - name: Restore AIDE config
+          copy:
+            src: "{{ __aide_conf_backup.path }}"
+            dest: /etc/aide.conf
+            remote_src: true
+            mode: preserve
+          when: __aide_conf_backup.path is defined
+
+        - name: Delete AIDE config tempfile
+          file:
+            path: "{{ __aide_conf_backup.path }}"
+            state: absent
+          when: __aide_conf_backup.path is defined
