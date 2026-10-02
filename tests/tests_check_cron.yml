@@ -35,6 +35,29 @@
         remote_src: true
         mode: preserve
 
+    # Record the AIDE database state before the first role run, so that
+    # the cleanup can return the host to it
+    - name: Check if the AIDE database exists before the test
+      stat:
+        path: /var/lib/aide/aide.db.gz
+      register: __aide_db_orig_stat
+
+    - name: Create tempfile for the original AIDE database
+      tempfile:
+        prefix: aide_
+        suffix: _db_orig
+      register: __aide_db_orig_backup
+      when: __aide_db_orig_stat.stat.exists
+
+    - name: Backup the original AIDE database
+      copy:
+        src: /var/lib/aide/aide.db.gz
+        dest: "{{ __aide_db_orig_backup.path }}"
+        remote_src: true
+        mode: preserve
+      register: __aide_db_orig_backup_copy
+      when: __aide_db_orig_stat.stat.exists
+
     - name: Run tests
       block:
         - name: Run the role and set up cron
@@ -53,15 +76,106 @@
           register: result
           failed_when: result is changed
 
-        - name: Check that AIDE does not report /etc/crontab as changed
+        - name: Run aide --check
           ansible.builtin.command:
             cmd: /usr/sbin/aide --check
           register: __aide_check_result
           changed_when: false
-          # exit codes 1-7 mean differences were found, 14 and higher mean error
-          failed_when: >-
-            __aide_check_result.rc > 7 or
-            '/etc/crontab' in __aide_check_result.stdout
+          failed_when: false
+
+        # exit codes 1-7 mean differences were found, 14 and higher mean error
+        - name: Check that AIDE does not report /etc/crontab as changed
+          ansible.builtin.assert:
+            that:
+              - __aide_check_result.rc <= 7
+              - "'/etc/crontab' not in __aide_check_result.stdout"
+
+        # Keep the existing database, check it and change cron in one run.
+        # AIDE watches only /etc/crontab here, so the check result depends
+        # only on when the role changes cron: it must be after the check.
+        # The role has installed AIDE by now, so /etc/aide.conf exists
+        - name: Create tempfile for AIDE config backup
+          tempfile:
+            prefix: aide_
+            suffix: _conf
+          register: __aide_conf_backup
+
+        - name: Backup AIDE config
+          copy:
+            src: /etc/aide.conf
+            dest: "{{ __aide_conf_backup.path }}"
+            remote_src: true
+            mode: preserve
+          register: __aide_conf_backup_copy
+
+        - name: Check if the AIDE database exists
+          stat:
+            path: /var/lib/aide/aide.db.gz
+          register: __aide_db_stat
+
+        - name: Create tempfile for AIDE database backup
+          tempfile:
+            prefix: aide_
+            suffix: _db
+          register: __aide_db_backup
+
+        - name: Backup AIDE database
+          copy:
+            src: /var/lib/aide/aide.db.gz
+            dest: "{{ __aide_db_backup.path }}"
+            remote_src: true
+            mode: preserve
+          register: __aide_db_backup_copy
+          when: __aide_db_stat.stat.exists
+
+        - name: Create the database with an AIDE config that watches only /etc/crontab
+          include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            aide_config_template: files/aide-crontab-only.conf.j2
+            aide_init: true
+            aide_cron_check: true
+            aide_cron_interval: "0 12 * * *"
+
+        - name: Run the role with the existing database, check it and change cron
+          include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            aide_config_template: files/aide-crontab-only.conf.j2
+            aide_check: true
+            aide_cron_check: true
+            aide_cron_interval: "0 6 * * *"
+
+        - name: Read /etc/crontab
+          ansible.builtin.slurp:
+            src: /etc/crontab
+          register: __aide_crontab_content
+
+        - name: Check that cron was changed
+          ansible.builtin.assert:
+            that:
+              - >-
+                '0 6 * * * root /usr/sbin/aide --check' in
+                (__aide_crontab_content.content | b64decode).splitlines()
+
+        - name: Restore the AIDE config
+          copy:
+            src: "{{ __aide_conf_backup.path }}"
+            dest: /etc/aide.conf
+            remote_src: true
+            mode: preserve
+
+        - name: Restore the AIDE database
+          copy:
+            src: "{{ __aide_db_backup.path }}"
+            dest: /var/lib/aide/aide.db.gz
+            remote_src: true
+            mode: preserve
+          when: __aide_db_backup_copy is not skipped
+
+        - name: Set cron back to the first interval
+          include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            aide_cron_check: true
+            aide_cron_interval: "0 12 * * *"
 
         - name: Run the role and and do not touch cron
           include_tasks: tasks/run_role_with_clear_facts.yml
@@ -103,3 +217,54 @@
           file:
             path: "{{ __aide_crontab_backup.path }}"
             state: absent
+
+        - name: Restore AIDE config
+          copy:
+            src: "{{ __aide_conf_backup.path }}"
+            dest: /etc/aide.conf
+            remote_src: true
+            mode: preserve
+          when:
+            - __aide_conf_backup_copy is defined
+            - __aide_conf_backup_copy is succeeded
+          tags: tests::cleanup
+
+        - name: Delete AIDE config tempfile
+          file:
+            path: "{{ __aide_conf_backup.path }}"
+            state: absent
+          when: __aide_conf_backup.path is defined
+          tags: tests::cleanup
+
+        - name: Restore the original AIDE database
+          copy:
+            src: "{{ __aide_db_orig_backup.path }}"
+            dest: /var/lib/aide/aide.db.gz
+            remote_src: true
+            mode: preserve
+          when:
+            - __aide_db_orig_backup_copy is defined
+            - __aide_db_orig_backup_copy is not skipped
+            - __aide_db_orig_backup_copy is succeeded
+          tags: tests::cleanup
+
+        - name: Remove the AIDE database created by the test
+          file:
+            path: /var/lib/aide/aide.db.gz
+            state: absent
+          when: not __aide_db_orig_stat.stat.exists
+          tags: tests::cleanup
+
+        - name: Delete AIDE database tempfile
+          file:
+            path: "{{ __aide_db_backup.path }}"
+            state: absent
+          when: __aide_db_backup.path is defined
+          tags: tests::cleanup
+
+        - name: Delete original AIDE database tempfile
+          file:
+            path: "{{ __aide_db_orig_backup.path }}"
+            state: absent
+          when: __aide_db_orig_backup.path is defined
+          tags: tests::cleanup
