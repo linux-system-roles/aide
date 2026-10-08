@@ -15,6 +15,41 @@
              ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
   register: __aide_install_packages
 
+# A staged install reports ok on re-runs, so ask rpm (by provides) if it is live.
+- name: Check whether the packages are live on a transactional update system
+  ansible.builtin.command:  # noqa command-instead-of-module
+    argv: "{{ ['rpm', '-q', '--whatprovides'] + __aide_packages }}"
+  register: __aide_packages_live
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: __aide_is_transactional | d(false)
+
+- name: Handle reboot for transactional update systems
+  when:
+    - __aide_is_transactional | d(false)
+    - __aide_install_packages is changed or
+      (__aide_packages_live.rc | d(0)) != 0
+  block:
+    - name: Notify user that reboot is needed to apply changes
+      ansible.builtin.debug:
+        msg: >
+          Reboot required to apply changes due to transactional updates.
+
+    - name: Reboot transactional update systems
+      ansible.builtin.reboot:
+        msg: Rebooting the system to apply transactional update changes.
+      when:
+        - aide_transactional_update_reboot_ok is not none
+        - aide_transactional_update_reboot_ok | bool
+
+    - name: Fail if reboot is needed and not set
+      ansible.builtin.fail:
+        msg: >
+          Reboot is required but not allowed. Please set 'aide_transactional_update_reboot_ok' to proceed.
+      when:
+        - aide_transactional_update_reboot_ok is none
+
 - name: Packages are installed
   # either run mode or check mode and no changes to packages
   when: not ansible_check_mode or (ansible_check_mode and not __aide_install_packages.changed)
