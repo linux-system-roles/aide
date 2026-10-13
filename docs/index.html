@@ -158,6 +158,8 @@ id="toc-aide_fetch_db">aide_fetch_db</a></li>
 id="toc-aide_cron_check">aide_cron_check</a></li>
 <li><a href="#aide_cron_interval"
 id="toc-aide_cron_interval">aide_cron_interval</a></li>
+<li><a href="#aide_transactional_update_reboot_ok"
+id="toc-aide_transactional_update_reboot_ok">aide_transactional_update_reboot_ok</a></li>
 <li><a href="#variables-exported-by-the-role"
 id="toc-variables-exported-by-the-role">Variables Exported by the
 Role</a></li>
@@ -258,6 +260,19 @@ class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># *  *  *  *  *</span></span></code></pre></div>
 <p>Default: <code>0 12 * * *</code></p>
 <p>Type: <code>string</code></p>
+<h2
+id="aide_transactional_update_reboot_ok">aide_transactional_update_reboot_ok</h2>
+<p>This variable is used to handle reboots required by transactional
+updates. If a transactional update requires a reboot, the role will
+proceed with the reboot if
+<code>aide_transactional_update_reboot_ok</code> is set to
+<code>true</code>. If set to <code>false</code>, the role will notify
+the user that a reboot is required, allowing for custom handling of the
+reboot requirement. If this variable is not set, the role will fail to
+ensure the reboot requirement is not overlooked. For non-transactional
+update systems, this variable is ignored.</p>
+<p>Default: <code>null</code></p>
+<p>Type: <code>bool</code></p>
 <h2 id="variables-exported-by-the-role">Variables Exported by the
 Role</h2>
 <p>The role will export the following variables:</p>
