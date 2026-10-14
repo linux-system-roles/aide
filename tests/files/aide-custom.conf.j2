@@ -7,13 +7,13 @@
 
 {% if aide_version is version('0.17.0', '>=') %}
 # The location of the database to be read.
-database_in=file:@@{DBDIR}/aide.db.gz
+database_in=file:{{ __aide_db_name }}
 # Default.
 log_level=warning
 report_level=changed_attributes
 {% else %}
 # The location of the database to be read.
-database=file:@@{DBDIR}/aide.db.gz
+database=file:{{ __aide_db_name }}
 # Default.
 verbose=5
 {% endif %}
@@ -21,7 +21,7 @@ verbose=5
 # The location of the database to be written.
 #database_out=sql:host:port:database:login_name:passwd:table
 #database_out=file:aide.db.new
-database_out=file:@@{DBDIR}/aide.db.new.gz
+database_out=file:{{ __aide_db_new_name }}
 
 # Whether to gzip the output to database
 gzip_dbout=yes

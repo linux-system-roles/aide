@@ -61,7 +61,10 @@ galaxy_info:
     - el9
     - el10
     - fedora
+    - leap15
+    - leap16
     - sles
+    - sles16
     - opensuse
   # List tags for your role here, one per line. A tag is a keyword that
   # describes and categorizes the role. Users find roles by searching for tags.
