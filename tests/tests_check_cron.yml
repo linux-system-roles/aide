@@ -3,6 +3,24 @@
 - name: Ensure that the cron is set up
   hosts: all
   tasks:
+    # set_fact, not play vars: the role run clears the facts these depend on
+    - name: Set the aide binary and database paths for this platform
+      set_fact:
+        __test_aide_bin: "{{ '/usr/bin/aide'
+          if ansible_facts['os_family'] == 'Suse' else '/usr/sbin/aide' }}"
+        __test_aide_db: "{{ '/var/lib/aide/aide.db'
+          if ansible_facts['os_family'] == 'Suse'
+          else '/var/lib/aide/aide.db.gz' }}"
+
+    # The custom configuration reports to a directory not every aide package ships
+    - name: Ensure the report directory exists
+      file:
+        path: /var/log/aide
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
     - name: Determine if system is ostree and set flag
       when: not __aide_is_ostree is defined
       block:
@@ -15,9 +33,10 @@
           set_fact:
             __aide_is_ostree: "{{ __ostree_booted_stat.stat.exists }}"
 
-    - name: Install crontabs
+    - name: Install the package that provides /etc/crontab
       package:
-        name: crontabs
+        name: "{{ 'cron' if ansible_facts['os_family'] == 'Suse'
+          else 'crontabs' }}"
         state: present
         use: "{{ (__aide_is_ostree | d(false)) |
                 ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
@@ -39,7 +58,7 @@
     # the cleanup can return the host to it
     - name: Check if the AIDE database exists before the test
       stat:
-        path: /var/lib/aide/aide.db.gz
+        path: "{{ __test_aide_db }}"
       register: __aide_db_orig_stat
 
     - name: Create tempfile for the original AIDE database
@@ -51,7 +70,7 @@
 
     - name: Backup the original AIDE database
       copy:
-        src: /var/lib/aide/aide.db.gz
+        src: "{{ __test_aide_db }}"
         dest: "{{ __aide_db_orig_backup.path }}"
         remote_src: true
         mode: preserve
@@ -70,15 +89,15 @@
         - name: Check file content
           ansible.builtin.lineinfile:
             path: /etc/crontab
-            regexp: "^.* root /usr/sbin/aide --check"
-            line: "0 12 * * * root /usr/sbin/aide --check"
+            regexp: "^.* root {{ __test_aide_bin }} --check"
+            line: "0 12 * * * root {{ __test_aide_bin }} --check"
             state: present
           register: result
           failed_when: result is changed
 
         - name: Run aide --check
           ansible.builtin.command:
-            cmd: /usr/sbin/aide --check
+            cmd: "{{ __test_aide_bin }} --check"
           register: __aide_check_result
           changed_when: false
           failed_when: false
@@ -110,7 +129,7 @@
 
         - name: Check if the AIDE database exists
           stat:
-            path: /var/lib/aide/aide.db.gz
+            path: "{{ __test_aide_db }}"
           register: __aide_db_stat
 
         - name: Create tempfile for AIDE database backup
@@ -121,7 +140,7 @@
 
         - name: Backup AIDE database
           copy:
-            src: /var/lib/aide/aide.db.gz
+            src: "{{ __test_aide_db }}"
             dest: "{{ __aide_db_backup.path }}"
             remote_src: true
             mode: preserve
@@ -153,7 +172,7 @@
           ansible.builtin.assert:
             that:
               - >-
-                '0 6 * * * root /usr/sbin/aide --check' in
+                ('0 6 * * * root ' ~ __test_aide_bin ~ ' --check') in
                 (__aide_crontab_content.content | b64decode).splitlines()
 
         - name: Restore the AIDE config
@@ -166,7 +185,7 @@
         - name: Restore the AIDE database
           copy:
             src: "{{ __aide_db_backup.path }}"
-            dest: /var/lib/aide/aide.db.gz
+            dest: "{{ __test_aide_db }}"
             remote_src: true
             mode: preserve
           when: __aide_db_backup_copy is not skipped
@@ -185,8 +204,8 @@
         - name: Ensure file is not changed
           ansible.builtin.lineinfile:
             path: /etc/crontab
-            regexp: "^.* root /usr/sbin/aide --check"
-            line: "0 12 * * * root /usr/sbin/aide --check"
+            regexp: "^.* root {{ __test_aide_bin }} --check"
+            line: "0 12 * * * root {{ __test_aide_bin }} --check"
             state: present
           register: result
           failed_when: result is changed
@@ -199,8 +218,8 @@
         - name: Ensure aide cron is removed
           ansible.builtin.lineinfile:
             path: /etc/crontab
-            regexp: "^.* root /usr/sbin/aide --check"
-            line: "0 12 * * * root /usr/sbin/aide --check"
+            regexp: "^.* root {{ __test_aide_bin }} --check"
+            line: "0 12 * * * root {{ __test_aide_bin }} --check"
             state: present
           register: result
           failed_when: not result is changed
@@ -239,7 +258,7 @@
         - name: Restore the original AIDE database
           copy:
             src: "{{ __aide_db_orig_backup.path }}"
-            dest: /var/lib/aide/aide.db.gz
+            dest: "{{ __test_aide_db }}"
             remote_src: true
             mode: preserve
           when:
@@ -250,7 +269,7 @@
 
         - name: Remove the AIDE database created by the test
           file:
-            path: /var/lib/aide/aide.db.gz
+            path: "{{ __test_aide_db }}"
             state: absent
           when: not __aide_db_orig_stat.stat.exists
           tags: tests::cleanup

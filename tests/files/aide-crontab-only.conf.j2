@@ -6,15 +6,15 @@
 @@define LOGDIR /var/log/aide
 
 {% if aide_version is version('0.17.0', '>=') %}
-database_in=file:@@{DBDIR}/aide.db.gz
+database_in=file:{{ __aide_db_name }}
 log_level=warning
 report_level=changed_attributes
 {% else %}
-database=file:@@{DBDIR}/aide.db.gz
+database=file:{{ __aide_db_name }}
 verbose=5
 {% endif %}
 
-database_out=file:@@{DBDIR}/aide.db.new.gz
+database_out=file:{{ __aide_db_new_name }}
 gzip_dbout=yes
 
 report_url=file:@@{LOGDIR}/aide.log

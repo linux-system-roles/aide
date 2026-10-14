@@ -3,6 +3,15 @@
 - name: Ensure that the role runs with default parameters
   hosts: all
   tasks:
+    # The custom configuration reports to a directory not every aide package ships
+    - name: Ensure the report directory exists
+      file:
+        path: /var/log/aide
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
     - name: Run the role
       include_tasks: tasks/run_role_with_clear_facts.yml
       vars:
