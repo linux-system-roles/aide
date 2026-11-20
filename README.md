@@ -70,7 +70,9 @@ Type: `bool`
 
 ### aide_fetch_db
 
-Fetches database from the remote nodes to store it on the controller node
+Fetches the database that `aide_init` creates on the remote nodes and stores it on the controller node,
+instead of installing it on the remote nodes. `aide_check` then checks against the fetched database, and
+`aide_update` always fetches the updated one. Without one of these actions it has no effect.
 
 Default: `false`
 
