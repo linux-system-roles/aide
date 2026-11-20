@@ -1,0 +1,214 @@
+# SPDX-License-Identifier: MIT
+# Assisted by Claude Code using model(s) Claude Opus 5.5
+---
+- name: Ensure a fetched database can be checked and updated
+  hosts: all
+  tasks:
+    # set_fact, not play vars: the role run clears the facts these depend on
+    - name: Set the AIDE database path for this platform
+      set_fact:
+        __test_aide_db: "{{ '/var/lib/aide/aide.db'
+          if ansible_facts['os_family'] == 'Suse'
+          else '/var/lib/aide/aide.db.gz' }}"
+
+    # The custom configuration reports to a directory not every aide package ships
+    - name: Ensure the report directory exists
+      file:
+        path: /var/log/aide
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Determine if system is ostree and set flag
+      when: not __aide_is_ostree is defined
+      block:
+        - name: Check if system is ostree
+          stat:
+            path: /run/ostree-booted
+          register: __ostree_booted_stat
+
+        - name: Set flag to indicate system is ostree
+          set_fact:
+            __aide_is_ostree: "{{ __ostree_booted_stat.stat.exists }}"
+
+    - name: Install aide and the package that provides /etc/crontab
+      package:
+        name:
+          - aide
+          - "{{ 'cron' if ansible_facts['os_family'] == 'Suse'
+            else 'crontabs' }}"
+        state: present
+        use: "{{ (__aide_is_ostree | d(false)) |
+                ternary('ansible.posix.rhel_rpm_ostree', omit) }}"
+
+    - name: Create a directory on the controller for the fetched databases
+      tempfile:
+        state: directory
+        prefix: aide_fetch_
+      delegate_to: localhost
+      register: __aide_fetch_dir
+
+    - name: Create tempfile for crontab backup
+      tempfile:
+        prefix: aide_
+        suffix: _crontab
+      register: __aide_crontab_backup
+
+    - name: Backup crontab
+      copy:
+        src: /etc/crontab
+        dest: "{{ __aide_crontab_backup.path }}"
+        remote_src: true
+        mode: preserve
+
+    - name: Create tempfile for the AIDE config backup
+      tempfile:
+        prefix: aide_
+        suffix: _conf
+      register: __aide_conf_backup
+
+    - name: Backup the AIDE config
+      copy:
+        src: /etc/aide.conf
+        dest: "{{ __aide_conf_backup.path }}"
+        remote_src: true
+        mode: preserve
+
+    - name: Check if the AIDE database exists before the test
+      stat:
+        path: "{{ __test_aide_db }}"
+      register: __aide_db_orig_stat
+
+    - name: Create tempfile for the original AIDE database
+      tempfile:
+        prefix: aide_
+        suffix: _db_orig
+      register: __aide_db_orig_backup
+      when: __aide_db_orig_stat.stat.exists
+
+    - name: Backup the original AIDE database
+      copy:
+        src: "{{ __test_aide_db }}"
+        dest: "{{ __aide_db_orig_backup.path }}"
+        remote_src: true
+        mode: preserve
+      register: __aide_db_orig_backup_copy
+      when: __aide_db_orig_stat.stat.exists
+
+    - name: Run tests
+      vars:
+        aide_config_template: files/aide-crontab-only.conf.j2
+        aide_fetch_db: true
+        aide_db_fetch_dir: "{{ __aide_fetch_dir.path }}"
+      block:
+        - name: Create the database and fetch it
+          include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            aide_init: true
+
+        - name: Find the database fetched after init
+          find:
+            paths: "{{ __aide_fetch_dir.path }}"
+            patterns: aide.db.new*
+            recurse: true
+            get_checksum: true
+          delegate_to: localhost
+          register: __aide_fetched_init
+
+        - name: Check against the fetched database
+          include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            aide_check: true
+
+        - name: Change the watched file
+          lineinfile:
+            path: /etc/crontab
+            line: "# changed by the aide fetch test"
+
+        - name: Update the database after the change and fetch it
+          include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            aide_update: true
+
+        - name: Find the database fetched after the update
+          find:
+            paths: "{{ __aide_fetch_dir.path }}"
+            patterns: aide.db.new*
+            recurse: true
+            get_checksum: true
+          delegate_to: localhost
+          register: __aide_fetched_update
+
+        - name: Ensure the update fetch replaced the fetched database
+          assert:
+            that:
+              - __aide_fetched_init.matched == 1
+              - __aide_fetched_update.matched == 1
+              - __aide_fetched_update.files[0].checksum !=
+                __aide_fetched_init.files[0].checksum
+
+        - name: Check against the updated database
+          include_tasks: tasks/run_role_with_clear_facts.yml
+          vars:
+            aide_check: true
+
+      always:
+        - name: Restore crontab
+          copy:
+            src: "{{ __aide_crontab_backup.path }}"
+            dest: /etc/crontab
+            remote_src: true
+            mode: preserve
+          tags: tests::cleanup
+
+        - name: Restore the AIDE config
+          copy:
+            src: "{{ __aide_conf_backup.path }}"
+            dest: /etc/aide.conf
+            remote_src: true
+            mode: preserve
+          tags: tests::cleanup
+
+        - name: Restore the original AIDE database
+          copy:
+            src: "{{ __aide_db_orig_backup.path }}"
+            dest: "{{ __test_aide_db }}"
+            remote_src: true
+            mode: preserve
+          when:
+            - __aide_db_orig_backup_copy is defined
+            - __aide_db_orig_backup_copy is not skipped
+            - __aide_db_orig_backup_copy is succeeded
+          tags: tests::cleanup
+
+        - name: Remove the AIDE database created by the test
+          file:
+            path: "{{ __test_aide_db }}"
+            state: absent
+          when: not __aide_db_orig_stat.stat.exists
+          tags: tests::cleanup
+
+        - name: Remove a new AIDE database left by a failed run
+          file:
+            path: "{{ __test_aide_db | regex_replace('aide\\.db', 'aide.db.new') }}"
+            state: absent
+          tags: tests::cleanup
+
+        - name: Delete the backup tempfiles
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - "{{ __aide_crontab_backup.path }}"
+            - "{{ __aide_conf_backup.path }}"
+            - "{{ __aide_db_orig_backup.path | d('') }}"
+          when: item | length > 0
+          tags: tests::cleanup
+
+        - name: Delete the fetched databases
+          file:
+            path: "{{ __aide_fetch_dir.path }}"
+            state: absent
+          delegate_to: localhost
+          tags: tests::cleanup
