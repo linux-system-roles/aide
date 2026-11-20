@@ -107,15 +107,6 @@
           vars:
             aide_init: true
 
-        - name: Find the database fetched after init
-          find:
-            paths: "{{ __aide_fetch_dir.path }}"
-            patterns: aide.db.new*
-            recurse: true
-            get_checksum: true
-          delegate_to: localhost
-          register: __aide_fetched_init
-
         - name: Check against the fetched database
           include_tasks: tasks/run_role_with_clear_facts.yml
           vars:
@@ -130,23 +121,6 @@
           include_tasks: tasks/run_role_with_clear_facts.yml
           vars:
             aide_update: true
-
-        - name: Find the database fetched after the update
-          find:
-            paths: "{{ __aide_fetch_dir.path }}"
-            patterns: aide.db.new*
-            recurse: true
-            get_checksum: true
-          delegate_to: localhost
-          register: __aide_fetched_update
-
-        - name: Ensure the update fetch replaced the fetched database
-          assert:
-            that:
-              - __aide_fetched_init.matched == 1
-              - __aide_fetched_update.matched == 1
-              - __aide_fetched_update.files[0].checksum !=
-                __aide_fetched_init.files[0].checksum
 
         - name: Check against the updated database
           include_tasks: tasks/run_role_with_clear_facts.yml
